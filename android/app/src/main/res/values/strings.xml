@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SPaDe Location Reminders</string>
+    <string name="title_activity_main">SPaDe Location Reminders</string>
+    <string name="package_name">com.spadecorp.locationreminders</string>
+    <string name="custom_url_scheme">com.spadecorp.locationreminders</string>
+</resources>

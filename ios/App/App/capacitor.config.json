@@ -1,0 +1,9 @@
+{
+	"appId": "com.spadecorp.locationreminders",
+	"appName": "SPaDe Location Reminders",
+	"webDir": "dist",
+	"appendUserAgent": "SPaDeLocationReminders/0.1 (spade-corp.com)",
+	"packageClassList": [
+		"GeolocationPlugin"
+	]
+}
