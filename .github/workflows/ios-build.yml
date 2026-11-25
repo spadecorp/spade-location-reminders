@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   ios:
-    runs-on: macos-15
+    runs-on: macos-15-intel
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
@@ -44,8 +44,9 @@ jobs:
           xcrun simctl bootstatus "$udid" -b
           xcodebuild -workspace ios/App/App.xcworkspace -scheme App \
             -configuration Debug -destination "id=$udid" \
-            -derivedDataPath "$RUNNER_TEMP/simulator" build
+            -derivedDataPath "$RUNNER_TEMP/simulator" ONLY_ACTIVE_ARCH=NO ARCHS="arm64 x86_64" build
           app="$RUNNER_TEMP/simulator/Build/Products/Debug-iphonesimulator/App.app"
+          lipo -verify_arch arm64 x86_64 "$app/App"
           xcrun simctl install "$udid" "$app"
           xcrun simctl launch "$udid" com.spadecorp.locationreminders
           mkdir -p artifacts
