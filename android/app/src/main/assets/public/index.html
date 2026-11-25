@@ -1,6 +1,6 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#101315"><title>SPaDe Location Reminders</title>  <script type="module" crossorigin src="/assets/index-BWSJpTiq.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-cj9Dhn3l.css">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#101315"><title>SPaDe Location Reminders</title>  <script type="module" crossorigin src="/assets/index-BJRlZwoK.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-AUXUCJxl.css">
 </head>
 <body><header><img class="brand" src="/spade-wordmark.png" width="799" height="265" alt="SPaDe"><span class="product">Location Reminders</span></header>
 <main>
@@ -11,7 +11,11 @@
 <section id="editor" hidden><button class="back" id="back">← &nbsp; Reminders</button><h1 id="heading">New reminder<span>.</span></h1>
 <form id="form"><label for="task">Task</label><input id="task" maxlength="120" required placeholder="What do you want to remember?" autocomplete="off">
 <div class="line"><label>Location</label><button type="button" class="link" id="near">Use my location</button></div>
-<div id="map" aria-label="Tap the map to select a location"></div><p id="mapStatus" role="status" hidden>Map tiles could not load. Check your connection or use coordinates to place the pin.</p><p id="pinInfo">Tap anywhere on the map to place your pin.</p>
+<label for="address">Search by address</label>
+<input id="address" type="text" maxlength="250" autocomplete="off" placeholder="Street address, place, or postal code" aria-describedby="addressHelp">
+<small id="addressHelp">Address searches use Photon and OpenStreetMap.</small>
+<div id="addressStatus" role="status"></div><div id="addressResults" role="group" aria-label="Suggested addresses"></div>
+<div id="map" aria-label="Tap the map to select a location"></div><p id="mapStatus" role="status" hidden>Map tiles could not load. Check your connection or use coordinates to place the pin.</p><p id="pinInfo" tabindex="-1">Tap anywhere on the map to place your pin.</p>
 <details id="coords"><summary>Enter coordinates</summary><div class="pair"><label>Latitude<input inputmode="decimal" id="lat" placeholder="−90 to 90"></label><label>Longitude<input inputmode="decimal" id="lng" placeholder="−180 to 180"></label></div><button type="button" class="secondary" id="apply">Place pin</button></details>
 <div class="line"><label for="radius">Alert radius</label><output for="radius" id="distance">300 m</output></div>
 <input id="radius" type="range" min="100" max="3000" step="50" value="300"><div class="ends"><span>100 m</span><span>3 km</span></div>

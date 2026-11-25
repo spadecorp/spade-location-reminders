@@ -63,7 +63,8 @@ final class RemindersPlugin: CAPPlugin, CAPBridgedPlugin, NotificationHandlerPro
         guard Double(radius) <= manager.maximumRegionMonitoringDistance else {
             call.reject("This phone requires a smaller radius."); return
         }
-        let item: [String: Any] = ["id":id, "task":task, "lat":lat, "lng":lng, "radius":radius, "speak":speak]
+        var item: [String: Any] = ["id":id, "task":task, "lat":lat, "lng":lng, "radius":radius, "speak":speak]
+        if let address = call.getString("address"), !address.isEmpty { item["address"] = address }
         center.requestAuthorization(options: [.alert, .sound]) { ok, error in
             guard ok else { call.reject(error?.localizedDescription ?? "Allow notifications in Settings."); return }
             self.center.getPendingNotificationRequests { requests in

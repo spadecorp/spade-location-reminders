@@ -7,7 +7,7 @@ export function coordinates(lat, lng) {
 export function reminder(id, task, point, radius, speak) {
   task = task.trim();
   if (!task || task.length > 120) throw Error('Enter a task of 1–120 characters.');
-  if (!point) throw Error('Place a pin on the map or enter coordinates.');
+  if (!point) throw Error('Choose an address, place a pin on the map, or enter coordinates.');
   radius = Number(radius);
   if (!Number.isInteger(radius) || radius < 100 || radius > 3000) throw Error('Choose a radius between 100 m and 3 km.');
   return {id, task, ...coordinates(point.lat, point.lng), radius, speak: Boolean(speak)};

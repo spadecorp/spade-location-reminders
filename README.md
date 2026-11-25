@@ -1,6 +1,6 @@
-# SPaDe Location Reminders · 0.1.2
+# SPaDe Location Reminders · 0.1.3
 
-Attach a task to any point on the map. Enter coordinates, tap a pin into place, or use your current location. Each task has an adjustable 100 m–3 km radius and an optional Read aloud switch. Entering the area triggers the alert. It stays scheduled for future visits until you tap **Complete**.
+Attach a task to any point on the map. Type at least three characters in **Search by address** and choose a suggestion to place the pin. Include a city or postal code to narrow the results. You can also enter coordinates, tap the map, or use your current location. Each task has an adjustable 100 m–3 km radius and an optional Read aloud switch. Entering the area triggers the alert. It stays scheduled for future visits until you tap **Complete**.
 
 ## Try the Android build
 
@@ -49,7 +49,7 @@ In Xcode, select the App target and your signing team under **Signing & Capabili
 
 ## Implementation
 
-- The shared interface uses Capacitor, JavaScript, Leaflet and OpenStreetMap tiles. It accepts arbitrary pins without an account, favorite, server or paid API key. Loading an uncached base map requires internet access. The tile provider receives tile requests for the area being viewed. The task text is stored locally.
+- The shared interface uses Capacitor, JavaScript, Leaflet and OpenStreetMap tiles. It accepts arbitrary pins without an account, favorite, server or paid API key. Loading an uncached base map requires internet access. The tile provider receives tile requests for the area being viewed. Address search sends the typed query to the public Photon service. Search requires an internet connection and service availability. Selecting a result stores its label with the reminder. The task text is stored locally.
 - Android registers native entry geofences through Google Play services and stores task metadata in private app preferences. An entry receiver posts the notification. When enabled, a short-lived foreground service uses an installed offline voice. Android supports up to 100 active geofences per app per device user.
 - iOS stores each task in a repeating UNLocationNotificationTrigger. The app limits the list to 20 active regions. When Read aloud is enabled, it prepares a short local speech file when the task is saved and attaches the file as the notification sound.
 - The default radius is 300 m. The circle is a user-selected boundary. Position estimates and operating-system scheduling affect when a device recognizes a crossing. Saving a task while already inside the circle may require leaving and returning for the first entry.
