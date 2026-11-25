@@ -1,6 +1,7 @@
 import {Capacitor, registerPlugin} from '@capacitor/core';
 import {Geolocation} from '@capacitor/geolocation';
 import L from 'leaflet';
+import {initAddressSearch} from './address-search.js';
 import 'leaflet/dist/leaflet.css';
 import './style.css';
 import {coordinates, reminder, units} from './model.js';
@@ -21,6 +22,13 @@ el('preview').hidden = native;
 el('disclosure').textContent = native ? (isAndroid
   ? 'To alert you with the app closed, allow notifications and precise location, then select “Allow all the time” in app settings. Tasks and pins stay on your phone.'
   : 'Allow notifications and location while using the app. iOS monitors the selected area after you close the app.') : '';
+let selectedAddress = '', locationRequest = 0;
+const dismissAddressSearch = initAddressSearch(el('address'), el('addressResults'), el('addressStatus'),
+  ({lat, lng, label}) => {
+    choose(lat, lng, true, label);
+    el('pinInfo').focus({preventScroll: true});
+  });
+el('address').addEventListener('input', () => { locationRequest++; });
 function renderMap() {
   if (map) return;
   map = L.map('map', {worldCopyJump:true}).setView([20, 0], 2);
@@ -33,7 +41,11 @@ function renderMap() {
   }).addTo(map);
   map.on('click', e => choose(e.latlng.lat, map.wrapLatLng(e.latlng).lng, map.getZoom() < 12));
 }
-function choose(lat, lng, center=false) {
+function choose(lat, lng, center=false, address='') {
+  locationRequest++;
+  dismissAddressSearch();
+  selectedAddress = address;
+  el('address').value = address;
   point = coordinates(lat, lng);
   const pos = [point.lat, point.lng];
   if (!pin) {
@@ -50,6 +62,8 @@ function button(label, fn) {
   const b = document.createElement('button'); b.className='link'; b.textContent=label; b.onclick=fn; return b;
 }
 async function home() {
+  dismissAddressSearch();
+  locationRequest++;
   el('editor').hidden=true; el('home').hidden=false;
   try {
     const {items, warning} = await service.list();
@@ -63,7 +77,7 @@ async function home() {
       const card=document.createElement('article'); card.className='card';
       const title=document.createElement('h2'); title.textContent=item.task;
       const meta=document.createElement('div');meta.className='meta';
-      meta.textContent=units(item.radius)+' radius · '+(item.speak?'Voice on':'Notification')+' · '+item.lat.toFixed(4)+', '+item.lng.toFixed(4);
+      meta.textContent=units(item.radius)+' radius · '+(item.speak?'Voice on':'Notification')+' · '+(item.address || (item.lat.toFixed(4)+', '+item.lng.toFixed(4)));
       const actions=document.createElement('div');actions.className='actions';
       actions.append(button('Edit',()=>edit(item)),button('Complete',async e=>{
         e.currentTarget.disabled=true;
@@ -82,6 +96,7 @@ function newId() {
   return [hex.slice(0,8),hex.slice(8,12),hex.slice(12,16),hex.slice(16,20),hex.slice(20)].join('-');
 }
 function edit(item) {
+  dismissAddressSearch(); selectedAddress=''; locationRequest++;
   editing=item?.id || newId(); point=null;
   el('home').hidden=true;el('editor').hidden=false;
   el('form').reset();el('coords').open=false;
@@ -92,7 +107,7 @@ function edit(item) {
   el('pinInfo').textContent='Tap anywhere on the map to place your pin.';
   renderMap();map.invalidateSize();
   if(pin){pin.remove();ring.remove();pin=ring=null;}
-  if(item)choose(item.lat,item.lng,true);else map.setView([20,0],2);
+  if(item)choose(item.lat,item.lng,true,item.address);else map.setView([20,0],2);
   window.scrollTo(0,0);
 }
 el('new').onclick=()=>edit(null);
@@ -100,11 +115,11 @@ el('back').onclick=()=>{if(!busy)home();};
 el('settings').onclick=async()=>{try {await plugin.settings();} catch(err){el('message').textContent=err.message;}};
 el('apply').onclick=()=>{try{const p=coordinates(el('lat').value,el('lng').value);choose(p.lat,p.lng,true);el('message').textContent='';}catch(err){el('message').textContent=err.message;}};
 el('near').onclick=async()=>{
-  const id=editing;el('near').disabled=true;
+  const request=++locationRequest;el('near').disabled=true;
   try {
     const location=await Geolocation.getCurrentPosition({enableHighAccuracy:true,timeout:15000});
-    if(id===editing && !el('editor').hidden)choose(location.coords.latitude,location.coords.longitude,true);
-  } catch(err) {el('message').textContent='Current location unavailable. Tap the map or enter coordinates.';}
+    if(request===locationRequest && !el('editor').hidden)choose(location.coords.latitude,location.coords.longitude,true);
+  } catch(err) {if(request===locationRequest)el('message').textContent='Current location unavailable. Tap the map or enter coordinates.';}
   finally {el('near').disabled=false;}
 };
 el('radius').oninput=()=>{el('distance').value=units(+el('radius').value);ring?.setRadius(+el('radius').value);};
@@ -112,14 +127,19 @@ el('form').onsubmit=async e=>{
   e.preventDefault();if(busy)return;
   busy=true;el('save').disabled=true;el('back').disabled=true;el('settings').hidden=true;el('message').textContent='';
   try {
+    if (el('address').value.trim() && el('address').value.trim() !== selectedAddress) {
+      el('address').focus();
+      throw Error('Choose a suggested address or clear the search to use the map pin.');
+    }
     const item=reminder(editing,el('task').value,point,el('radius').value,el('speak').checked);
+    if (selectedAddress && el('address').value.trim()) item.address = selectedAddress;
     if(native) {
       let permission=await Geolocation.checkPermissions();
       if(permission.location!=='granted') permission=await Geolocation.requestPermissions({permissions:['location']});
       if(permission.location!=='granted') throw Error('Allow precise location in settings, then save again.');
     }
     await service.save(item);await home();
-  } catch(err){el('message').textContent=err.message || 'Could not save this reminder.';el('settings').hidden=!native;}
+  } catch(err){el('message').textContent=err.message || 'Could not save this reminder.';el('settings').hidden=!native || !/permission|settings|allow/i.test(el('message').textContent);}
   finally{busy=false;el('save').disabled=false;el('back').disabled=false;}
 };
 document.addEventListener('visibilitychange',()=>{if(!document.hidden && !el('home').hidden)home();});
