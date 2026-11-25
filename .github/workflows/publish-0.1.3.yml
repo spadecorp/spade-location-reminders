@@ -1,0 +1,60 @@
+name: Publish Location Reminders v0.1.3
+on:
+  push:
+    branches: ['release/v0.1.3']
+    paths: ['.github/workflows/publish-0.1.3.yml']
+permissions:
+  actions: read
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TARGET: 2b2de9b2394b2b5443b0300a28a4ecc8db3c0e82
+      TESTED: 70ee60e37abce42ee9b69d68e79afd65fa4877ce
+    steps:
+      - name: Verify tested revision and fetch artifacts
+        run: |
+          set -euo pipefail
+          tree() { gh api "repos/$GH_REPO/git/commits/$1" --jq '.tree.sha'; }
+          test "$(tree "$TARGET")" = "$(tree "$TESTED")"
+          gh api "repos/$GH_REPO/actions/artifacts/15067838039/zip" > android.zip
+          gh api "repos/$GH_REPO/actions/artifacts/15067544604/zip" > ios.zip
+          echo '0e89fbca6815e6f70bfe3eac82d9101afc1606ae53ec08ea6e2a61fa850a2aa6  android.zip' | sha256sum -c -
+          echo '1085c2c8a21651c4a5a137949339862b20eab18ef02bae153cac5c3286213cd7  ios.zip' | sha256sum -c -
+          mkdir assets
+          unzip -p android.zip app-debug.apk > assets/SPaDe-Location-Reminders-0.1.3.apk
+          unzip -p ios.zip SPaDe-Location-Reminders-iOS-Simulator.zip > assets/SPaDe-Location-Reminders-0.1.3-iOS-Simulator.zip
+          unzip -p ios.zip SPaDe-Location-Reminders-iOS-Icon-1024.png > assets/SPaDe-Location-Reminders-iOS-Icon-1024.png
+          unzip -tq assets/*.apk
+          unzip -tq assets/*Simulator.zip
+      - name: Verify Android version and upgrade compatibility
+        run: |
+          set -euo pipefail
+          build_tools=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -1 | xargs dirname)
+          apk=assets/SPaDe-Location-Reminders-0.1.3.apk
+          "$build_tools/aapt" dump badging "$apk" > badging.txt
+          grep -E "^package: name='com.spadecorp.locationreminders'.*versionCode='4'.*versionName='0.1.3'" badging.txt
+          gh release download v0.1.2 --pattern '*.apk' --dir previous
+          cert() { "$build_tools/apksigner" verify --print-certs "$1" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p'; }
+          previous_cert=$(cert previous/*.apk)
+          new_cert=$(cert "$apk")
+          test -n "$previous_cert" && test -n "$new_cert"
+          cat > notes.md <<'NOTES'
+          ## Address suggestions
+          Open **New reminder → Search by address**, type at least three characters, and choose a suggestion. The app places the pin and saves the address with the reminder. You can also tap the map or enter coordinates. Address search uses the online Photon service.
+          
+          **Android:** Download the development-signed APK. Requires Android 7.0 or later and Google Play services.
+          
+          **iOS:** Download the simulator ZIP for Xcode on Intel or Apple silicon Macs. Installation on a physical iPhone requires a signed device build. The 1024-pixel app icon is also available below.
+          NOTES
+          if [[ "$previous_cert" != "$new_cert" ]]; then
+            printf '\n**Upgrading from the v0.1.2 GitHub APK:** The signing certificate changed. Android requires a fresh install. Record any reminders you want to keep before uninstalling the old app, because uninstalling clears local reminders.\n' >> notes.md
+          fi
+      - name: Publish tested assets
+        run: |
+          set -euo pipefail
+          gh release create v0.1.3 assets/* --target "$TARGET" --title 'SPaDe Location Reminders v0.1.3' --notes-file notes.md --latest
